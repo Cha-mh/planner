@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>플래너</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: #f5f5f0;
+    min-height: 100vh;
+    padding: 24px 16px 32px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 480px;
+    margin: 0 auto 20px;
+  }
+
+  .nav-btn {
+    width: 36px; height: 36px;
+    border: none; background: #fff;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+    display: flex; align-items: center; justify-content: center;
+    color: #444;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.1s;
+  }
+  .nav-btn:active { transform: scale(0.9); }
+
+  .month-info { text-align: center; }
+  .year-label { font-size: 12px; color: #999; letter-spacing: 0.1em; }
+  .month-label { font-size: 28px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.02em; line-height: 1.1; }
+
+  .today-btn {
+    font-size: 11px;
+    color: #888;
+    background: #fff;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 20px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .calendar {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .day-headers {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: #1a1a1a;
+  }
+
+  .day-header {
+    text-align: center;
+    padding: 10px 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: #aaa;
+  }
+  .day-header.sun { color: #ff6b6b; }
+  .day-header.sat { color: #74b0ff; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border-left: 1px solid #f0f0f0;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .cell {
+    border-right: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
+    min-height: 68px;
+    padding: 8px 4px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .cell.empty { background: #fafafa; }
+
+  .date-num {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    line-height: 1;
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+  }
+
+  .cell.sun .date-num { color: #e53e3e; }
+  .cell.sat .date-num { color: #3b82f6; }
+  .cell.today .date-num {
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 12px;
+  }
+  .cell.sun.today .date-num { background: #e53e3e; }
+  .cell.sat.today .date-num { background: #3b82f6; }
+
+  .ox-btn {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.12s ease;
+    background: #f0f0f0;
+    color: #ccc;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    font-family: inherit;
+  }
+  .ox-btn:active { transform: scale(0.88); }
+  .ox-btn.state-O { background: #e8f5e9; color: #2e7d32; }
+  .ox-btn.state-X { background: #ffebee; color: #c62828; }
+
+  .summary {
+    max-width: 480px;
+    margin: 14px auto 0;
+    display: flex;
+    gap: 8px;
+  }
+
+  .summary-card {
+    flex: 1;
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px 8px;
+    text-align: center;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  }
+
+  .summary-card .num {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .o-card .num { color: #2e7d32; }
+  .x-card .num { color: #c62828; }
+  .blank-card .num { color: #aaa; }
+
+  .summary-card .lbl {
+    font-size: 11px;
+    color: #bbb;
+    margin-top: 2px;
+  }
+
+  .reset-btn {
+    display: block;
+    max-width: 480px;
+    margin: 10px auto 0;
+    width: 100%;
+    padding: 11px;
+    background: none;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 12px;
+    color: #bbb;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+  <div class="month-info">
+    <div class="year-label" id="year-label"></div>
+    <div class="month-label" id="month-label"></div>
+  </div>
+  <button class="nav-btn" onclick="changeMonth(1)">›</button>
+</header>
+
+<div class="calendar">
+  <div class="day-headers">
+    <div class="day-header sun">일</div>
+    <div class="day-header">월</div>
+    <div class="day-header">화</div>
+    <div class="day-header">수</div>
+    <div class="day-header">목</div>
+    <div class="day-header">금</div>
+    <div class="day-header sat">토</div>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="summary">
+  <div class="summary-card o-card"><div class="num" id="cnt-o">0</div><div class="lbl">O</div></div>
+  <div class="summary-card x-card"><div class="num" id="cnt-x">0</div><div class="lbl">X</div></div>
+  <div class="summary-card blank-card"><div class="num" id="cnt-b">-</div><div class="lbl">미체크</div></div>
+</div>
+
+<button class="reset-btn" onclick="resetMonth()">이 달 초기화</button>
+
+<script>
+  const MONTHS_KR = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const today = new Date();
+  let curYear = today.getFullYear();
+  let curMonth = today.getMonth(); // 0-indexed
+
+  function storageKey(y, m) { return `planner-${y}-${String(m+1).padStart(2,'0')}`; }
+
+  function loadStates() {
+    return JSON.parse(localStorage.getItem(storageKey(curYear, curMonth)) || '{}');
+  }
+
+  function saveStates(states) {
+    localStorage.setItem(storageKey(curYear, curMonth), JSON.stringify(states));
+  }
+
+  function daysInMonth(y, m) { return new Date(y, m+1, 0).getDate(); }
+  function startDow(y, m) { return new Date(y, m, 1).getDay(); } // 0=Sun
+
+  function nextState(s) {
+    if (s === 'none' || !s) return 'O';
+    if (s === 'O') return 'X';
+    return 'none';
+  }
+
+  function labelFor(s) {
+    if (s === 'O') return 'O';
+    if (s === 'X') return 'X';
+    return '·';
+  }
+
+  function render() {
+    const states = loadStates();
+    const total = daysInMonth(curYear, curMonth);
+    const start = startDow(curYear, curMonth);
+    const isThisMonth = curYear === today.getFullYear() && curMonth === today.getMonth();
+
+    document.getElementById('year-label').textContent = curYear + '년';
+    document.getElementById('month-label').textContent = MONTHS_KR[curMonth];
+
+    let html = '';
+
+    for (let i = 0; i < start; i++) html += `<div class="cell empty"></div>`;
+
+    for (let d = 1; d <= total; d++) {
+      const dow = (start + d - 1) % 7;
+      const isSun = dow === 0, isSat = dow === 6;
+      const isToday = isThisMonth && d === today.getDate();
+      const s = states[d] || 'none';
+
+      const cls = ['cell', isSun?'sun':'', isSat?'sat':'', isToday?'today':''].filter(Boolean).join(' ');
+      const btnCls = s !== 'none' ? `ox-btn state-${s}` : 'ox-btn';
+
+      html += `<div class="${cls}">
+        <div class="date-num">${d}</div>
+        <button class="${btnCls}" data-day="${d}" onclick="toggle(${d})">${labelFor(s)}</button>
+      </div>`;
+    }
+
+    const totalCells = start + total;
+    const rem = totalCells % 7;
+    if (rem !== 0) for (let i = 0; i < 7 - rem; i++) html += `<div class="cell empty"></div>`;
+
+    document.getElementById('grid').innerHTML = html;
+    updateSummary(states, total);
+  }
+
+  function updateSummary(states, total) {
+    let o = 0, x = 0;
+    for (let d = 1; d <= total; d++) {
+      const s = states[d] || 'none';
+      if (s === 'O') o++;
+      else if (s === 'X') x++;
+    }
+    document.getElementById('cnt-o').textContent = o;
+    document.getElementById('cnt-x').textContent = x;
+    document.getElementById('cnt-b').textContent = total - o - x;
+  }
+
+  function toggle(day) {
+    const states = loadStates();
+    states[day] = nextState(states[day]);
+    saveStates(states);
+
+    const btn = document.querySelector(`[data-day="${day}"]`);
+    const s = states[day];
+    btn.textContent = labelFor(s);
+    btn.className = s !== 'none' ? `ox-btn state-${s}` : 'ox-btn';
+
+    const total = daysInMonth(curYear, curMonth);
+    updateSummary(states, total);
+  }
+
+  function changeMonth(dir) {
+    curMonth += dir;
+    if (curMonth < 0) { curMonth = 11; curYear--; }
+    if (curMonth > 11) { curMonth = 0; curYear++; }
+    render();
+  }
+
+  function resetMonth() {
+    if (!confirm('이 달 체크를 모두 지울까요?')) return;
+    localStorage.removeItem(storageKey(curYear, curMonth));
+    render();
+  }
+
+  render();
+</script>
+</body>
+</html>
